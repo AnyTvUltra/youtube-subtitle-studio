@@ -194,7 +194,7 @@ export const translateVideo = createServerFn({ method: "POST" })
     try {
       cues = await transcribeAudio(player, apiKey);
     } catch (e) {
-      console.error("speech-to-text failed, falling back to captions", e);
+      console.error("speech-to-text failed, falling back to captions", e, (e as any)?.cause, (e as any)?.stack);
       cues = await fetchCaptions(player);
       source = "captions";
     }
