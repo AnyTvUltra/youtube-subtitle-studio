@@ -51,10 +51,17 @@ async function transcribeAudio(data: any, apiKey: string): Promise<Cue[]> {
   formats.sort((a, b) => Number(a.contentLength ?? 9e9) - Number(b.contentLength ?? 9e9));
   const fmt = formats[0];
   if (!fmt) throw new Error("no audio");
-  if (Number(fmt.contentLength ?? 0) > 20_000_000) throw new Error("audio too large");
-  const audioRes = await fetch(fmt.url);
-  if (!audioRes.ok) throw new Error("audio download failed");
-  const b64 = toBase64(await audioRes.arrayBuffer());
+  const len = Number(fmt.contentLength ?? 0);
+  if (!len || len > 20_000_000) throw new Error("audio too large or unknown size");
+  // Download in ranged chunks: full-file requests get throttled by YouTube.
+  const all = new Uint8Array(len);
+  const STEP = 1_000_000;
+  for (let s = 0; s < len; s += STEP) {
+    const r = await fetch(`${fmt.url}&range=${s}-${Math.min(len - 1, s + STEP - 1)}`);
+    if (!r.ok) throw new Error("audio download failed");
+    all.set(new Uint8Array(await r.arrayBuffer()), s);
+  }
+  const b64 = toBase64(all.buffer);
   const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: { "content-type": "application/json", Authorization: `Bearer ${apiKey}`, "X-Lovable-AIG-SDK": "fetch" },
