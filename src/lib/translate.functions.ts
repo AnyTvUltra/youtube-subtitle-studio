@@ -38,7 +38,7 @@ async function fetchCaptions(videoId: string): Promise<Cue[]> {
   const re = /<p\s+t="(\d+)"(?:\s+d="(\d+)")?[^>]*>([\s\S]*?)<\/p>/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(xml))) {
-    const text = decode(m[3]);
+    const text = decode(m[3] ?? "");
     if (!text) continue;
     const start = Number(m[1]) / 1000;
     cues.push({ start, end: start + Number(m[2] ?? 2000) / 1000, text });
@@ -102,16 +102,16 @@ async function claudeTranslate(lines: string[], language: string, apiKey: string
     const mm = l.match(/^\s*(\d+)\s*\|(.*)$/);
     if (mm) {
       const i = Number(mm[1]) - 1;
-      if (i >= 0 && i < result.length) result[i] = mm[2].trim();
+      if (i >= 0 && i < result.length) result[i] = (mm[2] ?? "").trim();
     }
   }
   return result;
 }
 
 export const translateVideo = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ videoId: z.string().regex(/^[\w-]{11}$/), language: z.string().min(2).max(40) }))
+  .validator(z.object({ videoId: z.string().regex(/^[\w-]{11}$/), language: z.string().min(2).max(40) }))
   .handler(async ({ data }) => {
-    const apiKey = process.env.LOVABLE_API_KEY;
+    const apiKey = process.env["LOVABLE_API_KEY"];
     if (!apiKey) throw new Error("مفتاح الذكاء الاصطناعي غير مُعد");
     const cues = await fetchCaptions(data.videoId);
     const CHUNK = 120;
