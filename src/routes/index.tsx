@@ -17,7 +17,6 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const LANGS = ["العربية", "English", "Français", "Español", "Türkçe", "Deutsch", "فارسی", "اردو"];
 
 function parseId(url: string) {
   const m = url.match(/(?:v=|youtu\.be\/|shorts\/|embed\/|live\/)([\w-]{11})/) || url.match(/^([\w-]{11})$/);
@@ -51,7 +50,6 @@ function loadYT(): Promise<any> {
 function Index() {
   const translate = useServerFn(translateVideo);
   const [url, setUrl] = useState("");
-  const [lang, setLang] = useState("العربية");
   const [videoId, setVideoId] = useState<string | null>(null);
   const [cues, setCues] = useState<Cue[]>([]);
   const [loading, setLoading] = useState(false);
@@ -71,7 +69,7 @@ function Index() {
     setVideoId(id);
     setLoading(true);
     try {
-      const r = await translate({ data: { videoId: id, language: lang } });
+      const r = await translate({ data: { videoId: id } });
       setCues(r.cues);
     } catch (err) {
       setError(err instanceof Error ? err.message : "حدث خطأ غير متوقع");
@@ -124,7 +122,7 @@ function Index() {
             أي فيديو، <span className="text-primary">بلغتك</span>
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-            الصق رابط فيديو يوتيوب، اختر اللغة، وشاهد الترجمة تظهر أسفل الفيديو مباشرة.
+            الصق رابط فيديو يوتيوب، وسيحوّل الكلام إلى نص ويترجمه إلى الكوردية السورانية حسب سياق الحوار، لتظهر الترجمة تظهر أسفل الفيديو مباشرة.
           </p>
         </header>
 
@@ -136,15 +134,7 @@ function Index() {
             placeholder="https://www.youtube.com/watch?v=..."
             className="flex-1 rounded-xl bg-input px-4 py-3 text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
           />
-          <select
-            value={lang}
-            onChange={(e) => setLang(e.target.value)}
-            className="rounded-xl bg-input px-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-ring"
-          >
-            {LANGS.map((l) => (
-              <option key={l}>{l}</option>
-            ))}
-          </select>
+          <span className="flex items-center justify-center rounded-xl bg-input px-4 py-3 text-foreground">کوردی (سۆرانی)</span>
           <button
             disabled={loading}
             className="rounded-xl bg-primary px-6 py-3 font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
@@ -168,7 +158,7 @@ function Index() {
               )}
               {loading && (
                 <div className="pointer-events-none absolute left-4 top-4 rounded-full bg-caption px-3 py-1 text-xs text-caption-foreground">
-                  Claude يترجم الآن…
+                  يستمع للصوت ويترجم…
                 </div>
               )}
             </div>
