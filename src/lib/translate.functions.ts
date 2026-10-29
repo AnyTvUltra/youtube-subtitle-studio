@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export type Cue = { start: number; end: number; text: string };
 
@@ -184,8 +185,9 @@ async function claudeTranslate(lines: string[], context: string, apiKey: string)
 }
 
 export const translateVideo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .validator(z.object({ videoId: z.string().regex(/^[\w-]{11}$/) }))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const apiKey = process.env["LOVABLE_API_KEY"];
     if (!apiKey) throw new Error("مفتاح الذكاء الاصطناعي غير مُعد");
     const player = await getPlayer(data.videoId);
@@ -205,5 +207,9 @@ export const translateVideo = createServerFn({ method: "POST" })
       const ctx = cues.slice(Math.max(0, i - 20), i).map((c) => c.text).join("\n");
       translated.push(...(await claudeTranslate(part, ctx, apiKey)));
     }
-    return { source, cues: cues.map((c, i) => ({ ...c, text: translated[i] ?? c.text })) };
+    const out = cues.map((c, i) => ({ ...c, text: translated[i] ?? c.text }));
+    await context.supabase
+      .from("translations")
+      .insert({ user_id: context.userId, video_id: data.videoId, cues: out as any });
+    return { source, cues: out };
   });
